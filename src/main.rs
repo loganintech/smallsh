@@ -31,9 +31,10 @@ fn main() -> Result<(), Box<std::error::Error>> {
             "exit" => {
                 break;
             }
-            //Run arbitrary command
             _ => {
-                pool.add(program, command_parts.collect());
+                if let Err(e) = pool.add(program, command_parts.collect()) {
+                   println!("Error adding command to process pool: {}", e);
+                };
             }
         }
     }

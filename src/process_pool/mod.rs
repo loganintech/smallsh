@@ -1,10 +1,12 @@
 use std::process::{id, Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
+use std::io;
 
 pub struct ProcessPool {
     processes: Arc<Mutex<Vec<Child>>>,
     thread_handle: Option<std::thread::JoinHandle<()>>,
     tx: std::sync::mpsc::Sender<()>,
+    last_exit_code: Arc<Mutex<Option<i32>>>,
 }
 
 impl Drop for ProcessPool {
@@ -22,8 +24,11 @@ impl Drop for ProcessPool {
 impl ProcessPool {
     pub fn new() -> Self {
         let processes = Arc::new(Mutex::new(vec![]));
+        let code = Arc::new(Mutex::new(None));
         let (tx, rx) = std::sync::mpsc::channel();
         let cloned = processes.clone();
+        let code_cloned = code.clone();
+
         ProcessPool {
             processes: processes,
             thread_handle: Some(std::thread::spawn(move || loop {
@@ -35,6 +40,7 @@ impl ProcessPool {
                     match finished {
                         Ok(Some(status)) => {
                             println!("Command exited with code: {}", status.code().unwrap());
+                            *code_cloned.lock().unwrap() = status.code();
                             true
                         }
                         Ok(None) => false,
@@ -48,10 +54,11 @@ impl ProcessPool {
                 }
             })),
             tx: tx,
+            last_exit_code: code,
         }
     }
 
-    pub fn add(&mut self, command: &str, mut args: Vec<&str>) {
+    pub fn add(&mut self, command: &str, mut args: Vec<&str>) -> io::Result<()> {
 
         let backgrounded = match args.last() {
             Some(&arg) if arg == "&" => {
@@ -66,16 +73,15 @@ impl ProcessPool {
                 Command::new(command)
                     .args(args)
                     .stdin(Stdio::null())
-                    .spawn()
-                    .unwrap(),
+                    .spawn()?,
             )
         } else {
-            match Command::new(command)
+            let mut command = Command::new(command)
                 .args(args)
                 .stdin(Stdio::null())
-                .spawn()
-                .unwrap()
-                .wait()
+                .spawn()?;
+
+            match command.wait()
             {
                 Ok(status) => println!("Command exited with code: {}", status.code().unwrap()),
                 _ => eprintln!("Process failed to complete."),
@@ -86,9 +92,15 @@ impl ProcessPool {
         if let Some(command) = command {
             self.processes.lock().unwrap().push(command);
         }
+
+        Ok(())
     }
 
     pub fn len(&self) -> usize {
         self.processes.lock().unwrap().len()
+    }
+
+    pub fn last_exit_code(&self) -> Option<i32> {
+        *self.last_exit_code.lock().unwrap()
     }
 }
