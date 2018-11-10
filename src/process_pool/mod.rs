@@ -52,15 +52,13 @@ impl ProcessPool {
     }
 
     pub fn add(&mut self, command: &str, mut args: Vec<&str>) {
-        let backgrounded = if let Some(arg) = args.last() {
-            if *arg == "&" {
+
+        let backgrounded = match args.last() {
+            Some(&arg) if arg == "&" => {
                 args.pop();
                 true
-            } else {
-                false
-            }
-        } else {
-            false
+            },
+            _ => false
         };
 
         let command = if backgrounded {
