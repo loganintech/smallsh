@@ -24,29 +24,32 @@ fn main() -> Result<(), Box<std::error::Error>> {
                 if let Some(new_path) = change_directory(command_parts.next()) {
                     current_path = new_path;
                 }
-            },
+            }
             "status" => {
                 status(&current_path, &pool);
-            },
+            }
             "exit" => {
                 break;
-            },
+            }
             "background" => {
                 if pool.foreground_only() {
                     println!("Enabling background operations.");
+                    io::stdout().flush().ok().expect("Could not flush stdout");
                     pool.set_background();
                 }
-            },
+            }
             "foreground" => {
                 if !pool.foreground_only() {
                     println!("Entering foreground only mode.");
+                    io::stdout().flush().ok().expect("Could not flush stdout");
                     pool.set_foreground();
                 }
             }
             "" => {}
             _ => {
                 if let Err(e) = pool.add(program, command_parts.collect()) {
-                   println!("Error adding command to process pool: {}", e);
+                    println!("Error adding command to process pool: {}", e);
+                    io::stdout().flush().ok().expect("Could not flush stdout");
                 };
             }
         }
@@ -57,7 +60,7 @@ fn main() -> Result<(), Box<std::error::Error>> {
 
 fn prompt() -> Option<String> {
     print!(": ");
-    io::stdout().flush().unwrap();
+    io::stdout().flush().ok().expect("Could not flush stdout");
 
     let mut buffer = String::new();
     let stdin = io::stdin();
@@ -65,6 +68,8 @@ fn prompt() -> Option<String> {
 
     //Read input from the user
     handle.read_line(&mut buffer).unwrap();
+
+    buffer = buffer.replace("$$", &format!("{}", std::process::id()));
 
     //Trim buffer to take whitespace off of the right-side of a string
     let buffer = buffer.trim_right();

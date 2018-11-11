@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io;
+use std::io::{self, Write};
 use std::process::{id, Child, Command, Stdio};
 use std::sync::{mpsc::TryRecvError, Arc, Mutex};
 
@@ -194,6 +194,7 @@ impl ProcessPool {
 
         if let Some(command) = command {
             println!("Background process spawned with id: {}", command.id());
+            io::stdout().flush().ok().expect("Could not flush stdout");
             self.processes
                 .lock()
                 .expect("Couldn't aquire mutex lock for processes.")
