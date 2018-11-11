@@ -128,13 +128,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "program-three-rust"
-version = "0.1.0"
-dependencies = [
- "dirs 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "quote"
 version = "0.6.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -177,6 +170,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "scoped_threadpool"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "smallsh"
+version = "0.1.0"
+dependencies = [
+ "dirs 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "syn"

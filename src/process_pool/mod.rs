@@ -65,7 +65,7 @@ impl ProcessPool {
         }
     }
 
-    fn extract_input_redirection(mut args: Vec<&str>) -> (Option<File>, Vec<&str>) {
+    fn extract_input_redirection(mut args: Vec<String>) -> (Option<File>, Vec<String>) {
         let iterator = args.iter().peekable();
         let mut file: Option<File> = None;
 
@@ -78,13 +78,17 @@ impl ProcessPool {
 
         if idx >= 0 && args.len() >= 2 {
             args.remove(idx as usize);
-            file = Some(File::open(args.remove(idx as usize)).unwrap());
+
+            file = match File::open(args.remove(idx as usize)) {
+                Ok(file) => Some(file),
+                _ => None,
+            };
         }
 
         (file, args)
     }
 
-    fn extract_output_redirection(mut args: Vec<&str>) -> (Option<File>, Vec<&str>) {
+    fn extract_output_redirection(mut args: Vec<String>) -> (Option<File>, Vec<String>) {
         let iterator = args.iter();
         let mut file: Option<File> = None;
 
@@ -97,10 +101,26 @@ impl ProcessPool {
 
         if idx >= 0 && args.len() >= 2 {
             args.remove(idx as usize);
-            file = Some(File::create(args.remove(idx as usize)).unwrap());
-        }
+            file = match File::create(args.remove(idx as usize)) {
+                Ok(file) => Some(file),
+                _ => None,
+            };        }
 
         (file, args)
+    }
+
+    fn replace_with_pid(args: Vec<&str>) -> Vec<String> {
+
+        args.iter().map(|arg| {
+
+            if arg == &"$$" {
+                format!("{}", id())
+            } else {
+                arg.to_string()
+            }
+
+        }).collect()
+
     }
 
     pub fn add(&mut self, command: &str, mut args: Vec<&str>) -> io::Result<()> {
@@ -112,6 +132,7 @@ impl ProcessPool {
             _ => false,
         };
 
+        let args = ProcessPool::replace_with_pid(args);
         let (input, args) = ProcessPool::extract_input_redirection(args);
         let (output, args) = ProcessPool::extract_output_redirection(args);
 
