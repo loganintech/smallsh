@@ -1,5 +1,5 @@
 use std::process::{id, Child, Command, Stdio};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, mpsc::TryRecvError};
 use std::io;
 
 pub struct ProcessPool {
@@ -43,14 +43,14 @@ impl ProcessPool {
                             *code_cloned.lock().expect("Couldn't aquire last exit code mutex lock for setting code.") = status.code();
                             true
                         }
-                        Ok(None) => false,
-                        //The process is
                         _ => false,
                     }
                 });
 
-                if let Ok(_) = rx.try_recv() {
-                    break;
+                match rx.try_recv() {
+                    Ok(_) => break,
+                    Err(TryRecvError::Disconnected) => break,
+                    _ => {}
                 }
             })),
             tx: tx,
