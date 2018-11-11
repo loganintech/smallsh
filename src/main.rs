@@ -17,20 +17,33 @@ fn main() -> Result<(), Box<std::error::Error>> {
     loop {
         let command = prompt().unwrap();
         let mut command_parts = command.split_whitespace();
-        let program = command_parts.next().unwrap();
+        let program = command_parts.next().unwrap_or("");
 
         match program {
             "cd" => {
                 if let Some(new_path) = change_directory(command_parts.next()) {
                     current_path = new_path;
                 }
-            }
+            },
             "status" => {
                 status(&current_path, &pool);
-            }
+            },
             "exit" => {
                 break;
+            },
+            "background" => {
+                if pool.foreground_only() {
+                    println!("Enabling background operations.");
+                    pool.set_background();
+                }
+            },
+            "foreground" => {
+                if !pool.foreground_only() {
+                    println!("Entering foreground only mode.");
+                    pool.set_foreground();
+                }
             }
+            "" => {}
             _ => {
                 if let Err(e) = pool.add(program, command_parts.collect()) {
                    println!("Error adding command to process pool: {}", e);
